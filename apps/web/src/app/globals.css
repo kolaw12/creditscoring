@@ -1,9 +1,5 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-}
-
 /* =============================================================================
    Debitum Exact Replica Theme Tokens & Styling
    Background: Soft radial gradient from deep slate/cyan (#0B1922) to canvas (#060C10)
