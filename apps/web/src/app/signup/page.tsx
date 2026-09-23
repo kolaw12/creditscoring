@@ -47,7 +47,8 @@ export default function SignupPage() {
   async function onSubmit(data: SignupForm) {
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/v1/auth/signup`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || (typeof window !== "undefined" ? "" : "http://localhost:5000");
+      const res = await fetch(`${baseUrl}/api/v1/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
