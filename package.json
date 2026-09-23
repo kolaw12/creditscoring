@@ -1,0 +1,22 @@
+{
+  "name": "rentfin",
+  "private": true,
+  "description": "Rent financing platform for graduates and young professionals in Nigeria",
+  "scripts": {
+    "dev:api": "pnpm --filter @rentfin/api dev",
+    "dev:web": "pnpm --filter @rentfin/web dev",
+    "dev": "pnpm run --parallel dev:api dev:web",
+    "build": "pnpm run --parallel build:api build:web",
+    "build:api": "pnpm --filter @rentfin/api build",
+    "build:web": "pnpm --filter @rentfin/web build",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "db:generate": "pnpm --filter @rentfin/api db:generate",
+    "db:migrate": "pnpm --filter @rentfin/api db:migrate",
+    "db:seed": "pnpm --filter @rentfin/api db:seed"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

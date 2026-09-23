@@ -1,0 +1,704 @@
+// =============================================================================
+// RentFin — Prisma Schema
+// Rent financing platform for graduates and young professionals in Nigeria
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  tenant
+  admin
+  credit_officer
+  operations
+  collections_officer
+  finance
+  super_admin
+}
+
+enum UserStatus {
+  pending_verification
+  active
+  suspended
+  deactivated
+}
+
+enum ApplicationStatus {
+  draft
+  submitted
+  verification
+  under_review
+  additional_information_required
+  approved
+  declined
+  expired
+}
+
+enum RiskLevel {
+  low
+  moderate
+  high
+  very_high
+}
+
+enum RiskRecommendation {
+  approve
+  manual_review
+  decline
+}
+
+enum OfferStatus {
+  pending
+  sent
+  viewed
+  accepted
+  rejected
+  expired
+  cancelled
+}
+
+enum LoanStatus {
+  approved
+  offer_accepted
+  pending_disbursement
+  active
+  delinquent
+  defaulted
+  completed
+  cancelled
+}
+
+enum RepaymentStatus {
+  pending
+  paid
+  partial
+  late
+  defaulted
+}
+
+enum PaymentStatus {
+  pending
+  processing
+  successful
+  failed
+  reversed
+  refunded
+}
+
+enum PayoutStatus {
+  pending
+  processing
+  successful
+  failed
+  reversed
+}
+
+enum DocumentType {
+  government_id
+  employment_letter
+  bank_statement
+  tenancy_agreement
+  proof_of_income
+  property_document
+  other
+}
+
+enum DocumentStatus {
+  pending
+  verified
+  rejected
+}
+
+enum VerificationStatus {
+  unverified
+  pending
+  verified
+  failed
+}
+
+enum NotificationType {
+  email
+  sms
+  in_app
+}
+
+enum NotificationStatus {
+  pending
+  sent
+  delivered
+  failed
+}
+
+enum AuditAction {
+  create
+  update
+  delete
+  login
+  logout
+  failed_login
+  password_change
+  kyc_change
+  application_submit
+  document_upload
+  document_verify
+  document_reject
+  risk_decision
+  offer_create
+  offer_accept
+  offer_reject
+  loan_create
+  loan_disburse
+  payment_initiate
+  payment_success
+  payment_fail
+  payout_initiate
+  payout_success
+  payout_fail
+  admin_action
+  settings_change
+}
+
+// ── Users & Authentication ─────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  phone         String?   @unique
+  passwordHash  String    @map("password_hash")
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  role          UserRole  @default(tenant)
+  status        UserStatus @default(pending_verification)
+  emailVerified Boolean   @default(false) @map("email_verified")
+  phoneVerified Boolean   @default(false) @map("phone_verified")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  tenantProfile     TenantProfile?
+  refreshTokens     RefreshToken[]
+  applications      Application[]
+  documents         Document[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  repaymentPayments Payment[]
+  loans             Loan[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ── Tenant Profiles ────────────────────────────────────────────────────────
+
+model TenantProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique @map("user_id")
+  dateOfBirth   DateTime? @map("date_of_birth")
+  address       String?
+  city          String?
+  state         String?
+  bvn           String?  // Bank Verification Number — encrypted at app level
+  nin           String?  // National Identification Number — encrypted at app level
+  idType        String?  @map("id_type")
+  idNumber      String?  @map("id_number") // encrypted at app level
+  employmentStatus    String?  @map("employment_status")
+  employerName        String?  @map("employer_name")
+  jobTitle            String?  @map("job_title")
+  employmentStartDate DateTime? @map("employment_start_date")
+  monthlyIncome       Decimal? @db.Decimal(15, 2) @map("monthly_income")
+  salaryFrequency     String?  @map("salary_frequency")
+  salaryBank          String?  @map("salary_bank")
+  incomeVerified      Boolean  @default(false) @map("income_verified")
+  verificationStatus  VerificationStatus @default(unverified) @map("verification_status")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_profiles")
+}
+
+// ── Landlords ──────────────────────────────────────────────────────────────
+
+model Landlord {
+  id            String   @id @default(cuid())
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  email         String?
+  phone         String?
+  bvn           String?  // encrypted at app level
+  bankName      String?  @map("bank_name")
+  bankAccountNumber String? @map("bank_account_number")
+  bankAccountName   String? @map("bank_account_name")
+  verificationStatus VerificationStatus @default(unverified) @map("verification_status")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  properties    Property[]
+  applications  Application[]
+  payouts       LandlordPayout[]
+
+  @@map("landlords")
+}
+
+// ── Properties ─────────────────────────────────────────────────────────────
+
+model Property {
+  id            String   @id @default(cuid())
+  address       String
+  city          String
+  state         String
+  propertyType  String?  @map("property_type")
+  landlordId    String?  @map("landlord_id")
+  verificationStatus VerificationStatus @default(unverified) @map("verification_status")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  landlord   Landlord?   @relation(fields: [landlordId], references: [id])
+  applications Application[]
+
+  @@map("properties")
+}
+
+// ── Applications ───────────────────────────────────────────────────────────
+
+model Application {
+  id              String            @id @default(cuid())
+  userId          String            @map("user_id")
+  status          ApplicationStatus @default(draft)
+  propertyId      String?           @map("property_id")
+  landlordId      String?           @map("landlord_id")
+
+  // Rent details
+  annualRent          Decimal  @db.Decimal(15, 2) @map("annual_rent")
+  monthlyRent         Decimal  @db.Decimal(15, 2) @map("monthly_rent")
+  leaseDuration       Int      @map("lease_duration") // months
+  tenantContribution  Decimal  @default(0) @db.Decimal(15, 2) @map("tenant_contribution")
+  requestedAmount     Decimal  @db.Decimal(15, 2) @map("requested_amount")
+
+  // Status tracking
+  submittedAt         DateTime? @map("submitted_at")
+  reviewedAt          DateTime? @map("reviewed_at")
+  reviewedBy          String?   @map("reviewed_by")
+  decisionNote        String?   @map("decision_note")
+  expiresAt           DateTime? @map("expires_at")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user           User              @relation(fields: [userId], references: [id])
+  property       Property?         @relation(fields: [propertyId], references: [id])
+  landlord       Landlord?         @relation(fields: [landlordId], references: [id])
+  riskAssessment RiskAssessment?
+  offer          FinancingOffer?
+  documents      Document[]
+  statusHistory  ApplicationStatusHistory[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("applications")
+}
+
+model ApplicationStatusHistory {
+  id            String            @id @default(cuid())
+  applicationId String            @map("application_id")
+  fromStatus    ApplicationStatus? @map("from_status")
+  toStatus      ApplicationStatus  @map("to_status")
+  changedBy     String?            @map("changed_by")
+  note          String?
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("application_status_history")
+}
+
+// ── Risk Assessment ────────────────────────────────────────────────────────
+
+model RiskAssessment {
+  id            String   @id @default(cuid())
+  applicationId String   @unique @map("application_id")
+
+  // Inputs
+  rentToIncomeRatio     Decimal? @db.Decimal(5, 4) @map("rent_to_income_ratio")
+  financingToIncomeRatio Decimal? @db.Decimal(5, 4) @map("financing_to_income_ratio")
+  employmentDuration    Int?     @map("employment_duration_months")
+  hasVerifiedIncome     Boolean? @map("has_verified_income")
+  previousRepaymentScore Decimal? @db.Decimal(5, 4) @map("previous_repayment_score")
+  otherFactors          Json?    @map("other_factors")
+
+  // Outputs
+  affordabilityScore Decimal?  @db.Decimal(5, 4) @map("affordability_score")
+  riskScore         Decimal?  @db.Decimal(5, 4) @map("risk_score")
+  riskLevel         RiskLevel?
+  recommendation    RiskRecommendation?
+  recommendedAmount Decimal?  @db.Decimal(15, 2) @map("recommended_amount")
+  recommendedDownPayment Decimal? @db.Decimal(15, 2) @map("recommended_down_payment")
+  modelVersion      String?   @map("model_version")
+
+  // Audit
+  calculatedAt DateTime  @default(now()) @map("calculated_at")
+  calculatedBy String?   @map("calculated_by") // 'system' or admin user id
+  notes        String?
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@map("risk_assessments")
+}
+
+// ── Financing Offers ───────────────────────────────────────────────────────
+
+model FinancingOffer {
+  id            String      @id @default(cuid())
+  applicationId String      @unique @map("application_id")
+  status        OfferStatus @default(pending)
+  version       Int         @default(1)
+
+  // Offer terms
+  financingAmount       Decimal  @db.Decimal(15, 2) @map("financing_amount")
+  tenantContribution    Decimal  @db.Decimal(15, 2) @map("tenant_contribution")
+  financingFee          Decimal  @default(0) @db.Decimal(15, 2) @map("financing_fee")
+  interestRate          Decimal  @db.Decimal(5, 4) @map("interest_rate") // annual rate
+  monthlyInstallment    Decimal  @db.Decimal(15, 2) @map("monthly_installment")
+  repaymentPeriod       Int      @map("repayment_period") // months
+  totalRepaymentAmount  Decimal  @db.Decimal(15, 2) @map("total_repayment_amount")
+  firstPaymentDate      DateTime? @map("first_payment_date")
+
+  // Metadata
+  createdBy     String?    @map("created_by")
+  sentAt        DateTime?  @map("sent_at")
+  viewedAt      DateTime?  @map("viewed_at")
+  acceptedAt    DateTime?  @map("accepted_at")
+  rejectedAt    DateTime?  @map("rejected_at")
+  expiresAt     DateTime?  @map("expires_at")
+
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  loan        Loan?
+
+  @@map("financing_offers")
+}
+
+// ── Loans ──────────────────────────────────────────────────────────────────
+
+model Loan {
+  id                String     @id @default(cuid())
+  offerId           String     @unique @map("offer_id")
+  userId            String     @map("user_id")
+  status            LoanStatus @default(approved)
+  loanNumber        String     @unique @map("loan_number") // human-readable ID
+
+  // Amounts
+  principalAmount   Decimal    @db.Decimal(15, 2) @map("principal_amount")
+  totalPayable      Decimal    @db.Decimal(15, 2) @map("total_payable")
+  amountPaid        Decimal    @default(0) @db.Decimal(15, 2) @map("amount_paid")
+  outstandingBalance Decimal   @db.Decimal(15, 2) @map("outstanding_balance")
+  financingFee      Decimal    @default(0) @db.Decimal(15, 2) @map("financing_fee")
+  lateFeeAccrued    Decimal    @default(0) @db.Decimal(15, 2) @map("late_fee_accrued")
+
+  // Dates
+  disbursementDate  DateTime?  @map("disbursement_date")
+  firstPaymentDate  DateTime?  @map("first_payment_date")
+  maturityDate      DateTime?  @map("maturity_date")
+  completedAt       DateTime?  @map("completed_at")
+  defaultedAt       DateTime?  @map("defaulted_at")
+
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  offer          FinancingOffer     @relation(fields: [offerId], references: [id])
+  user           User               @relation(fields: [userId], references: [id])
+  repayments     RepaymentSchedule[]
+  transactions   LoanTransaction[]
+  payments       Payment[]
+  payouts        LandlordPayout[]
+  autoDebitMandate AutoDebitMandate?
+  statusHistory  LoanStatusHistory[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("loans")
+}
+
+model LoanStatusHistory {
+  id        String     @id @default(cuid())
+  loanId    String     @map("loan_id")
+  fromStatus LoanStatus? @map("from_status")
+  toStatus  LoanStatus  @map("to_status")
+  changedBy String?    @map("changed_by")
+  note      String?
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([loanId])
+  @@map("loan_status_history")
+}
+
+// ── Repayment Schedule ─────────────────────────────────────────────────────
+
+model RepaymentSchedule {
+  id              String          @id @default(cuid())
+  loanId          String          @map("loan_id")
+  installmentNo   Int             @map("installment_no")
+  dueDate         DateTime        @map("due_date")
+  amountDue       Decimal         @db.Decimal(15, 2) @map("amount_due")
+  amountPaid      Decimal         @default(0) @db.Decimal(15, 2) @map("amount_paid")
+  outstandingAmount Decimal       @db.Decimal(15, 2) @map("outstanding_amount")
+  status          RepaymentStatus @default(pending)
+  paidAt          DateTime?       @map("paid_at")
+  lateFee         Decimal         @default(0) @db.Decimal(15, 2) @map("late_fee")
+  notes           String?
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  loan     Loan             @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@unique([loanId, installmentNo])
+  @@index([loanId])
+  @@index([dueDate])
+  @@map("repayment_schedules")
+}
+
+// ── Loan Transactions (ledger) ────────────────────────────────────────────
+
+model LoanTransaction {
+  id            String   @id @default(cuid())
+  loanId        String   @map("loan_id")
+  type          String   // disbursement, repayment, late_fee, adjustment, reversal
+  amount        Decimal  @db.Decimal(15, 2)
+  balanceBefore Decimal  @db.Decimal(15, 2) @map("balance_before")
+  balanceAfter  Decimal  @db.Decimal(15, 2) @map("balance_after")
+  reference     String?  @unique // idempotency key
+  description   String?
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  loan Loan @relation(fields: [loanId], references: [id])
+
+  @@index([loanId])
+  @@map("loan_transactions")
+}
+
+// ── Payments ───────────────────────────────────────────────────────────────
+
+model Payment {
+  id                  String        @id @default(cuid())
+  userId              String        @map("user_id")
+  repaymentScheduleId String?       @map("repayment_schedule_id")
+  loanId              String?       @map("loan_id")
+
+  amount              Decimal       @db.Decimal(15, 2)
+  currency            String        @default("NGN")
+  status              PaymentStatus @default(pending)
+  paymentMethod       String?       @map("payment_method")
+  provider            String?       // paystack, flutterwave
+  providerReference   String?       @unique @map("provider_reference")
+  providerResponse    Json?         @map("provider_response")
+
+  idempotencyKey      String?       @unique @map("idempotency_key")
+
+  initiatedAt         DateTime      @default(now()) @map("initiated_at")
+  completedAt         DateTime?     @map("completed_at")
+  failedAt            DateTime?     @map("failed_at")
+  failureReason       String?       @map("failure_reason")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user              User                @relation(fields: [userId], references: [id])
+  repaymentSchedule RepaymentSchedule?  @relation(fields: [repaymentScheduleId], references: [id])
+  loan              Loan?               @relation(fields: [loanId], references: [id])
+
+  @@index([userId])
+  @@index([loanId])
+  @@index([providerReference])
+  @@map("payments")
+}
+
+// ── Landlord Payouts ───────────────────────────────────────────────────────
+
+model LandlordPayout {
+  id            String       @id @default(cuid())
+  loanId        String       @map("loan_id")
+  landlordId    String       @map("landlord_id")
+  amount        Decimal      @db.Decimal(15, 2)
+  status        PayoutStatus @default(pending)
+  provider      String?
+  providerReference String?  @unique @map("provider_reference")
+  providerResponse  Json?    @map("provider_response")
+
+  initiatedAt   DateTime     @default(now()) @map("initiated_at")
+  completedAt   DateTime?    @map("completed_at")
+  failedAt      DateTime?    @map("failed_at")
+  failureReason String?      @map("failure_reason")
+
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  loan     Loan     @relation(fields: [loanId], references: [id])
+  landlord Landlord @relation(fields: [landlordId], references: [id])
+
+  @@index([loanId])
+  @@index([landlordId])
+  @@map("landlord_payouts")
+}
+
+// ── Auto-Debit Mandate ─────────────────────────────────────────────────────
+
+model AutoDebitMandate {
+  id              String   @id @default(cuid())
+  loanId          String   @unique @map("loan_id")
+  provider        String?
+  mandateReference String? @map("mandate_reference")
+  status          String   @default("pending") // pending, active, suspended, cancelled
+  authorizedAt    DateTime? @map("authorized_at")
+  startDate       DateTime? @map("start_date")
+  endDate         DateTime? @map("end_date")
+  failedAttempts  Int      @default(0) @map("failed_attempts")
+  lastAttemptAt   DateTime? @map("last_attempt_at")
+  metadata        Json?
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  loan Loan @relation(fields: [loanId], references: [id])
+
+  @@map("auto_debit_mandates")
+}
+
+// ── Documents ──────────────────────────────────────────────────────────────
+
+model Document {
+  id              String       @id @default(cuid())
+  userId          String       @map("user_id")
+  applicationId   String?      @map("application_id")
+  type            DocumentType
+  title           String?
+  fileName        String       @map("file_name")
+  fileKey         String       @map("file_key") // S3 key — private
+  fileSize        Int          @map("file_size")
+  mimeType        String       @map("mime_type")
+  status          DocumentStatus @default(pending)
+  rejectionReason String?      @map("rejection_reason")
+  verifiedBy      String?      @map("verified_by")
+  verifiedAt      DateTime?    @map("verified_at")
+  uploadedAt      DateTime     @default(now()) @map("uploaded_at")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user        User          @relation(fields: [userId], references: [id])
+  application Application?  @relation(fields: [applicationId], references: [id])
+
+  @@index([userId])
+  @@index([applicationId])
+  @@map("documents")
+}
+
+// ── Notifications ──────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  subject   String?
+  body      String
+  metadata  Json?
+  status    NotificationStatus @default(pending)
+  sentAt    DateTime?        @map("sent_at")
+  readAt    DateTime?        @map("read_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+// ── Webhook Events ─────────────────────────────────────────────────────────
+
+model WebhookEvent {
+  id            String   @id @default(cuid())
+  provider      String   // paystack, flutterwave
+  eventType     String   @map("event_type")
+  providerId    String?  @map("provider_id")
+  payload       Json
+  processed     Boolean  @default(false)
+  processedAt   DateTime? @map("processed_at")
+  error         String?
+  retryCount    Int      @default(0) @map("retry_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([provider, providerId])
+  @@index([processed])
+  @@map("webhook_events")
+}
+
+// ── Audit Logs ─────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?     @map("user_id")
+  action      AuditAction
+  entity      String?     // e.g., 'application', 'loan', 'payment'
+  entityId    String?     @map("entity_id")
+  before      Json?
+  after       Json?
+  ipAddress   String?     @map("ip_address")
+  userAgent   String?     @map("user_agent")
+  metadata    Json?
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ── Platform Configuration ─────────────────────────────────────────────────
+
+model PlatformConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedBy   String?  @map("updated_by")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("platform_configs")
+}
