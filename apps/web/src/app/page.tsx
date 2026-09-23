@@ -109,7 +109,7 @@ const newsArticles = [
 
 export default function HomePage() {
   return (
-    <div className="bg-[#060C10] min-h-screen font-sans text-slate-100 antialiased selection:bg-[#CCFF00] selection:text-black">
+    <div className="bg-[#060C10] min-h-screen font-sans text-slate-100 antialiased selection:bg-[#CCFF00] selection:text-black overflow-x-hidden">
       <Navbar />
 
       <main className="pt-24 sm:pt-28 space-y-16">
@@ -122,7 +122,7 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-12 gap-8 items-start">
             
             {/* LEFT COLUMN: HERO HEADLINE + REAL ESTATE IMAGE CARD + STATS */}
-            <div className="lg:col-span-7 space-y-8 debitum-hero-bg p-6 sm:p-10 rounded-[2.5rem] border border-slate-800/80">
+            <div className="lg:col-span-7 space-y-6 sm:space-y-8 debitum-hero-bg p-4 sm:p-6 md:p-10 rounded-2xl sm:rounded-[2.5rem] border border-slate-800/80">
               
               {/* Top Pill Badge */}
               <div className="text-center pt-2">
@@ -134,7 +134,7 @@ export default function HomePage() {
 
               {/* Main Bold Hero Text */}
               <div className="text-center max-w-xl mx-auto space-y-4">
-                <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.15]">
+                <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight leading-[1.15]">
                   Invest in Safe, Collateral-Backed Rents Across Nigeria
                 </h1>
                 <p className="text-sm sm:text-base text-slate-400 font-normal leading-relaxed max-w-lg mx-auto">
@@ -143,7 +143,7 @@ export default function HomePage() {
               </div>
 
               {/* Real Estate Featured Banner Image */}
-              <div className="relative w-full h-56 sm:h-72 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl group">
+              <div className="relative w-full h-44 sm:h-56 md:h-72 rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-800 shadow-2xl group">
                 <Image
                   src="/luxury_apartment.png"
                   alt="Luxury Apartment Rent Home"
@@ -151,15 +151,15 @@ export default function HomePage() {
                   className="object-cover group-hover:scale-105 transition-transform duration-700"
                   priority
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#060C10] via-[#060C10]/40 to-transparent flex items-end p-6">
-                  <div className="flex justify-between items-center w-full">
+                <div className="absolute inset-0 bg-gradient-to-t from-[#060C10] via-[#060C10]/40 to-transparent flex items-end p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center w-full gap-2">
                     <div>
                       <span className="text-[10px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-full bg-[#CCFF00] text-black">
                         FEATURED PROPERTY
                       </span>
-                      <h3 className="text-lg font-bold text-white mt-1">Lekki Phase 1 Waterfront Apartments</h3>
+                      <h3 className="text-sm sm:text-lg font-bold text-white mt-1">Lekki Phase 1 Waterfront Apartments</h3>
                     </div>
-                    <span className="text-xs font-mono font-bold text-[#CCFF00] bg-[#060C10]/80 px-3 py-1.5 rounded-full border border-slate-700">
+                    <span className="text-[10px] sm:text-xs font-mono font-bold text-[#CCFF00] bg-[#060C10]/80 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-slate-700 self-start sm:self-auto">
                       ₦4.5M/yr Financed
                     </span>
                   </div>
@@ -212,7 +212,7 @@ export default function HomePage() {
             </div>
 
             {/* RIGHT COLUMN: REAL ESTATE LEASE OPPORTUNITIES */}
-            <div className="lg:col-span-5 space-y-6 bg-[#08131B] p-6 sm:p-8 rounded-[2.5rem] border border-slate-800/80">
+            <div className="lg:col-span-5 space-y-6 bg-[#08131B] p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-[2.5rem] border border-slate-800/80">
               
               <div className="flex items-center justify-end">
                 <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0C1A24] border border-slate-700/80 text-xs font-semibold text-slate-300">
@@ -304,13 +304,13 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-12 gap-8 items-stretch">
             
             {/* BOTTOM LEFT QUADRANT: WHITE BG CARD SECTION */}
-            <div className="lg:col-span-6 bg-white text-slate-900 p-8 sm:p-12 rounded-[2.5rem] space-y-8 flex flex-col justify-between shadow-2xl">
+            <div className="lg:col-span-6 bg-white text-slate-900 p-5 sm:p-8 md:p-12 rounded-2xl sm:rounded-[2.5rem] space-y-6 sm:space-y-8 flex flex-col justify-between shadow-2xl">
               <div className="space-y-4">
                 <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider">
                   WHY CHOOSE RENTFIN
                 </span>
                 
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
                   For Tenants & Investors Seeking Transparent Growth.
                 </h2>
               </div>
@@ -337,13 +337,13 @@ export default function HomePage() {
             </div>
 
             {/* BOTTOM RIGHT QUADRANT: DARK BG NEWS SECTION */}
-            <div className="lg:col-span-6 bg-[#08131B] text-white p-8 sm:p-12 rounded-[2.5rem] space-y-8 flex flex-col justify-between border border-slate-800/80">
+            <div className="lg:col-span-6 bg-[#08131B] text-white p-5 sm:p-8 md:p-12 rounded-2xl sm:rounded-[2.5rem] space-y-6 sm:space-y-8 flex flex-col justify-between border border-slate-800/80">
               <div className="space-y-4">
                 <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0C1A24] border border-slate-700 text-slate-300 text-xs font-semibold">
                   OUR LATEST NEWS
                 </span>
 
-                <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
                   Discover The Latest News And Updates From Our Team.
                 </h2>
               </div>
